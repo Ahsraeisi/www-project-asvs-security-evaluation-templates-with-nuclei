@@ -1,0 +1,88 @@
+name: Update README with Template Files
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Set up Python (for regex and file manipulation)
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      # Install dependencies (if any)
+      - name: Install dependencies
+        run: |
+          pip install PyYAML
+
+      # Run a Python script to find matching files and update README
+      - name: Find files and update README
+        run: |
+          python3 <<EOF
+import os
+import re
+
+# Regex to match files
+pattern = re.compile(r'.*/[0-9]+\.[0-9]+\.[0-9]+(\.[0-9])?\.yaml')
+
+# Directory where templates are stored
+template_dir = 'templates/'
+
+# Find all files matching the regex
+matching_files = []
+for root, dirs, files in os.walk(template_dir):
+    for file in files:
+        if pattern.match(file):
+            matching_files.append(os.path.relpath(os.path.join(root, file), template_dir))
+
+# Sort files alphabetically (optional)
+matching_files.sort()
+
+# Read the existing README file
+readme_path = 'README.md'
+with open(readme_path, 'r') as f:
+    readme_content = f.read()
+
+# Prepare the new content to insert (you can customize the structure here)
+new_content = "\n## Template Files\n\nHere are all the template files found in the repository:\n\n"
+new_content += "| File Path | Description |\n"
+new_content += "|-----------|-------------|\n"
+
+for file in matching_files:
+    new_content += f"| {file} | Description of {file} |\n"
+
+# Insert new content into README (you can specify a location to insert)
+if "## Template Files" not in readme_content:
+    readme_content += new_content
+else:
+    # If the section already exists, replace it
+    readme_content = re.sub(r'## Template Files\n[\s\S]+?(?=\n##|\Z)', '## Template Files\n\n' + new_content, readme_content)
+
+# Write the updated README back to the file
+with open(readme_path, 'w') as f:
+    f.write(readme_content)
+
+EOF
+
+      # Commit the changes to the README
+      - name: Commit changes
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add README.md
+          git commit -m "Update README with new template files"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
