@@ -1,97 +1,59 @@
-name: ☑️ Update README with Template Files
+name: Update README Table
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'templates/**/*.yaml'
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  update-readme:
+  build:
     runs-on: ubuntu-latest
-    if: github.repository == 'ahsraeisi/www-project-asvs-security-evaluation-templates-with-nuclei'  # Adjust repository name as necessary
+
     steps:
-      # Checkout the repository
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      # Set up Python
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
-
-      # Install dependencies
-      - name: Install dependencies
+      - name: Read existing table (optional)
         run: |
-          pip install PyYAML
+          set +e
+          existing_table=$(grep -E '^<h2>Templates|<table>|</table>$' README.md)
+          if [[ ! -z "$existing_table" ]]; then
+            echo "Existing table found. Updating..."
+          else
+            echo "No existing table found. Creating new table..."
+          fi
 
-      # Run Python script to find template files and update README
-      - name: Find matching template files and update README
+      - name: Generate new table content
         run: |
-          python3 <<EOF
-          import os
-          import re
+          files=$(find ./templates -type f)
+          content=""
+          for file in $files; do
+            file_name=$(basename "$file")
+            link="https://snbig.github.io/Vulnerable-Pages/templates/$file_name"
+            content+="<li><a href=\"$link\" style=\"display: inline-block; padding: 10px 20px; margin: 5px; background-color: #3f51b5; color: white; text-decoration: none; font-size: 16px; border-radius: 5px;\">$file_name</a></li>"
+          done
+          echo "$content" > table_content.txt
 
-          # Regex pattern to match template files
-          pattern = re.compile(r'.*/[0-9]+\.[0-9]+\.[0-9]+(\.[0-9])?\.yaml')
+      - name: Update README
+        run: |
+          if [[ -z "$existing_table" ]]; then
+            echo "<div class=\"templates-container\" style=\"margin: 0 auto; text-align: center;\">" > README.md
+            echo "<h1 style='color: #4CAF50;' align=\"center\">Templates</h1>" >> README.md
+            echo "<ul class=\"templates-list\" style=\"list-style: none; padding: 0;\">" >> README.md
+            cat table_content.txt >> README.md
+            echo "</ul>" >> README.md
+            echo "</div>" >> README.md
+          else
+            sed -i '/<h2>Templates/,/<\/table>/d' README.md
+            echo "<h2 style='color: #4CAF50;'>Templates</h2>" >> README.md
+            echo "<table style='border-collapse: collapse; width: 100%;'>" >> README.md
+            echo "<tr style='background-color: #f2f2f2;'><th style='border: 1px solid #ddd; padding: 8px;'>File Name</th><th style='border: 1px solid #ddd; padding: 8px;'>Link</th></tr>" >> README.md
+            cat table_content.txt >> README.md
+            echo "</table>" >> README.md
+          fi
 
-          # Directory where templates are stored
-          template_dir = 'templates/'
-
-          # Find all files matching the regex
-          matching_files = []
-          for root, dirs, files in os.walk(template_dir):
-              for file in files:
-                  if pattern.match(file):
-                      matching_files.append(os.path.relpath(os.path.join(root, file), template_dir))
-
-          # Sort files alphabetically
-          matching_files.sort()
-
-          # Read existing README file
-          readme_path = 'README.md'
-          with open(readme_path, 'r') as f:
-              readme_content = f.read()
-
-          # Prepare new content to insert into README
-          new_content = "\n## Template Files\n\nHere are all the template files found in the repository:\n\n"
-          new_content += "| File Path | Description |\n"
-          new_content += "|-----------|-------------|\n"
-
-          for file in matching_files:
-              new_content += f"| {file} | Description of {file} |\n"
-
-          # Insert new content into README
-          if "## Template Files" not in readme_content:
-              readme_content += new_content
-          else:
-              readme_content = re.sub(r'## Template Files\n[\s\S]+?(?=\n##|\Z)', '## Template Files\n\n' + new_content, readme_content)
-
-          # Write the updated README back to the file
-          with open(readme_path, 'w') as f:
-              f.write(readme_content)
-
-          EOF
-
-      # Commit changes to README if there were updates
       - name: Commit changes
-        run: |
-          git diff --exit-code README.md || (
-            git config --global user.name "github-actions"
-            git config --global user.email "github-actions@github.com"
-            git add README.md
-            git commit -m "chore: update README with template files 🤖"
-            git push
-          )
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Ensure changes are pushed back to the correct branch
-      - name: Push changes
-        run: |
-          git pull origin $GITHUB_REF --rebase
-          git push origin $GITHUB_REF
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update README table
+          commit_user_name: GitHub Actions
+          commit_user_email: github-actions[bot]@users.noreply.github.com
+          branch: main  # Replace with your desired branch
+          file_pattern: README.md
