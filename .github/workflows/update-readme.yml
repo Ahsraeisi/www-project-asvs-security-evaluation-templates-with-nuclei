@@ -2,6 +2,8 @@ name: Update README Table
 
 on:
   push:
+    branches:
+      - main  # Or your target branch
 
 jobs:
   build:
@@ -10,43 +12,43 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Read existing table (optional)
+      - name: Pull the latest changes from the remote repository
+        run: |
+          git fetch origin
+          git checkout main
+          git pull origin main
+
+      - name: Read existing "available templates" section (optional)
         run: |
           set +e
-          existing_table=$(grep -E '^<h2>Templates|<table>|</table>$' README.md)
-          if [[ ! -z "$existing_table" ]]; then
-            echo "Existing table found. Updating..."
+          # Check for the "available templates" section in the README
+          available_templates_line=$(grep -n "available templates" README.md | cut -d: -f1)
+          if [[ ! -z "$available_templates_line" ]]; then
+            echo "Found 'available templates' section. Updating..."
           else
-            echo "No existing table found. Creating new table..."
+            echo "No 'available templates' section found. Adding new section..."
           fi
 
-      - name: Generate new table content
+      - name: Generate new table content in Markdown
         run: |
           files=$(find ./templates -type f)
           content=""
           for file in $files; do
-            file_name=$(basename "$file")
+            file_name=$(basename "$file" .yaml)
             link="https://snbig.github.io/Vulnerable-Pages/templates/$file_name"
-            content+="<li><a href=\"$link\" style=\"display: inline-block; padding: 10px 20px; margin: 5px; background-color: #3f51b5; color: white; text-decoration: none; font-size: 16px; border-radius: 5px;\">$file_name</a></li>"
+            content+="- [$file_name]($link)\n"
           done
           echo "$content" > table_content.txt
 
       - name: Update README
         run: |
-          if [[ -z "$existing_table" ]]; then
-            echo "<div class=\"templates-container\" style=\"margin: 0 auto; text-align: center;\">" > README.md
-            echo "<h1 style='color: #4CAF50;' align=\"center\">Templates</h1>" >> README.md
-            echo "<ul class=\"templates-list\" style=\"list-style: none; padding: 0;\">" >> README.md
-            cat table_content.txt >> README.md
-            echo "</ul>" >> README.md
-            echo "</div>" >> README.md
+          if [[ ! -z "$available_templates_line" ]]; then
+            # If "available templates" section exists, we insert after it
+            sed -i "/available templates/ a \\
+            \n$content\n" README.md
           else
-            sed -i '/<h2>Templates/,/<\/table>/d' README.md
-            echo "<h2 style='color: #4CAF50;'>Templates</h2>" >> README.md
-            echo "<table style='border-collapse: collapse; width: 100%;'>" >> README.md
-            echo "<tr style='background-color: #f2f2f2;'><th style='border: 1px solid #ddd; padding: 8px;'>File Name</th><th style='border: 1px solid #ddd; padding: 8px;'>Link</th></tr>" >> README.md
-            cat table_content.txt >> README.md
-            echo "</table>" >> README.md
+            # If not, add the section at the end of the README
+            echo -e "\n## Available Templates\n$content" >> README.md
           fi
 
       - name: Commit changes
