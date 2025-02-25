@@ -31,48 +31,48 @@ jobs:
       - name: Find files and update README
         run: |
           python3 <<EOF
-import os
-import re
+          import os
+          import re
 
 # Regex to match files
-pattern = re.compile(r'.*/[0-9]+\.[0-9]+\.[0-9]+(\.[0-9])?\.yaml')
+          pattern = re.compile(r'.*/[0-9]+\.[0-9]+\.[0-9]+(\.[0-9])?\.yaml')
 
 # Directory where templates are stored
-template_dir = 'templates/'
+          template_dir = 'templates/'
 
 # Find all files matching the regex
-matching_files = []
-for root, dirs, files in os.walk(template_dir):
-    for file in files:
-        if pattern.match(file):
-            matching_files.append(os.path.relpath(os.path.join(root, file), template_dir))
+          matching_files = []
+          for root, dirs, files in os.walk(template_dir):
+            for file in files:
+                if pattern.match(file):
+                    matching_files.append(os.path.relpath(os.path.join(root, file), template_dir))
 
 # Sort files alphabetically (optional)
-matching_files.sort()
+          matching_files.sort()
 
 # Read the existing README file
-readme_path = 'README.md'
-with open(readme_path, 'r') as f:
-    readme_content = f.read()
+          readme_path = 'README.md'
+          with open(readme_path, 'r') as f:
+            readme_content = f.read()
 
 # Prepare the new content to insert (you can customize the structure here)
-new_content = "\n## Template Files\n\nHere are all the template files found in the repository:\n\n"
-new_content += "| File Path | Description |\n"
-new_content += "|-----------|-------------|\n"
-
-for file in matching_files:
-    new_content += f"| {file} | Description of {file} |\n"
-
-# Insert new content into README (you can specify a location to insert)
-if "## Template Files" not in readme_content:
-    readme_content += new_content
-else:
-    # If the section already exists, replace it
-    readme_content = re.sub(r'## Template Files\n[\s\S]+?(?=\n##|\Z)', '## Template Files\n\n' + new_content, readme_content)
-
-# Write the updated README back to the file
-with open(readme_path, 'w') as f:
-    f.write(readme_content)
+          new_content = "\n## Template Files\n\nHere are all the template files found in the repository:\n\n"
+          new_content += "| File Path | Description |\n"
+          new_content += "|-----------|-------------|\n"
+          
+          for file in matching_files:
+              new_content += f"| {file} | Description of {file} |\n"
+          
+          # Insert new content into README (you can specify a location to insert)
+          if "## Template Files" not in readme_content:
+              readme_content += new_content
+          else:
+              # If the section already exists, replace it
+              readme_content = re.sub(r'## Template Files\n[\s\S]+?(?=\n##|\Z)', '## Template Files\n\n' + new_content, readme_content)
+          
+          # Write the updated README back to the file
+          with open(readme_path, 'w') as f:
+              f.write(readme_content)
 
 EOF
 
