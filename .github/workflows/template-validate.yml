@@ -33,49 +33,49 @@ jobs:
       - name: Find matching template files and update README
         run: |
           python3 <<EOF
-import os
-import re
+          import os
+          import re
 
-# Regex pattern to match template files
-pattern = re.compile(r'.*/[0-9]+\.[0-9]+\.[0-9]+(\.[0-9])?\.yaml')
+          # Regex pattern to match template files
+          pattern = re.compile(r'.*/[0-9]+\.[0-9]+\.[0-9]+(\.[0-9])?\.yaml')
 
-# Directory where templates are stored
-template_dir = 'templates/'
+          # Directory where templates are stored
+          template_dir = 'templates/'
 
-# Find all files matching the regex
-matching_files = []
-for root, dirs, files in os.walk(template_dir):
-    for file in files:
-        if pattern.match(file):
-            matching_files.append(os.path.relpath(os.path.join(root, file), template_dir))
+          # Find all files matching the regex
+          matching_files = []
+          for root, dirs, files in os.walk(template_dir):
+              for file in files:
+                  if pattern.match(file):
+                      matching_files.append(os.path.relpath(os.path.join(root, file), template_dir))
 
-# Sort files alphabetically
-matching_files.sort()
+          # Sort files alphabetically
+          matching_files.sort()
 
-# Read existing README file
-readme_path = 'README.md'
-with open(readme_path, 'r') as f:
-    readme_content = f.read()
+          # Read existing README file
+          readme_path = 'README.md'
+          with open(readme_path, 'r') as f:
+              readme_content = f.read()
 
-# Prepare new content to insert into README
-new_content = "\n## Template Files\n\nHere are all the template files found in the repository:\n\n"
-new_content += "| File Path | Description |\n"
-new_content += "|-----------|-------------|\n"
+          # Prepare new content to insert into README
+          new_content = "\n## Template Files\n\nHere are all the template files found in the repository:\n\n"
+          new_content += "| File Path | Description |\n"
+          new_content += "|-----------|-------------|\n"
 
-for file in matching_files:
-    new_content += f"| {file} | Description of {file} |\n"
+          for file in matching_files:
+              new_content += f"| {file} | Description of {file} |\n"
 
-# Insert new content into README
-if "## Template Files" not in readme_content:
-    readme_content += new_content
-else:
-    readme_content = re.sub(r'## Template Files\n[\s\S]+?(?=\n##|\Z)', '## Template Files\n\n' + new_content, readme_content)
+          # Insert new content into README
+          if "## Template Files" not in readme_content:
+              readme_content += new_content
+          else:
+              readme_content = re.sub(r'## Template Files\n[\s\S]+?(?=\n##|\Z)', '## Template Files\n\n' + new_content, readme_content)
 
-# Write the updated README back to the file
-with open(readme_path, 'w') as f:
-    f.write(readme_content)
+          # Write the updated README back to the file
+          with open(readme_path, 'w') as f:
+              f.write(readme_content)
 
-EOF
+          EOF
 
       # Commit changes to README if there were updates
       - name: Commit changes
